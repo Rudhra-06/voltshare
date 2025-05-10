@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoltShare - P2P EV Charging</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.21.2/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f9fafb;
+        }
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .lucide {
+            width: 24px;
+            height: 24px;
+            stroke-width: 2;
+            stroke: currentColor;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Icon components
+        const Search = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+            </svg>
+        );
+
+        const MapPin = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+        );
+
+        const Battery = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <rect width="16" height="10" x="2" y="7" rx="2" ry="2"></rect>
+                <line x1="22" x2="22" y1="11" y2="13"></line>
+                <line x1="6" x2="6" y1="11" y2="13"></line>
+                <line x1="10" x2="10" y1="11" y2="13"></line>
+                <line x1="14" x2="14" y1="11" y2="13"></line>
+            </svg>
+        );
+
+        const User = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <circle cx="12" cy="8" r="5"></circle>
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+            </svg>
+        );
+
+        const Clock = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        );
+
+        const Calendar = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+                <line x1="16" x2="16" y1="2" y2="6"></line>
+                <line x1="8" x2="8" y1="2" y2="6"></line>
+                <line x1="3" x2="21" y1="10" y2="10"></line>
+            </svg>
+        );
+
+        const ChevronRight = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <path d="m9 18 6-6-6-6"></path>
+            </svg>
+        );
+
+        const Star = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill={props.fill || "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide ${props.className || ''}`}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+        );
+
+        // Main App Component
+        function VoltShareApp() {
+            const [currentTab, setCurrentTab] = React.useState('find');
+            
+            const tabs = [
+                { id: 'find', label: 'Find', icon: (props) => <Search {...props} /> },
+                { id: 'bookings', label: 'Bookings', icon: (props) => <Calendar {...props} /> },
+                { id: 'host', label: 'Host', icon: (props) => <Battery {...props} /> },
+                { id: 'profile', label: 'Profile', icon: (props) => <User {...props} /> },
+            ];
+            
+            const nearbyChargers = [
+                { id: 1, host: 'Alex S.', distance: '0.3', rating: 4.9, reviews: 24, price: 8, available: '7PM-7AM' },
+                { id: 2, host: 'Maria T.', distance: '0.5', rating: 4.7, reviews: 18, price: 7, available: '6PM-8AM' },
+                { id: 3, host: 'John D.', distance: '0.8', rating: 4.8, reviews: 32, price: 9, available: 'Weekends' },
+                { id: 4, host: 'Sarah K.', distance: '1.2', rating: 4.6, reviews: 15, price: 6, available: '24/7' },
+            ];
+
+            return (
+                <div className="flex flex-col h-screen bg-gray-50 app-container">
+                    {/* Header */}
+                    <div className="bg-green-600 p-4 shadow">
+                        <div className="flex items-center justify-between">
+                            <h1 className="text-xl font-bold text-white">VoltShare</h1>
+                            <div className="bg-white rounded-full p-1">
+                                <Battery className="text-green-600" size={24} />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Main Content */}
+                    <div className="flex-1 overflow-auto">
+                        {currentTab === 'find' && (
+                            <div className="p-4">
+                                {/* Search Bar */}
+                                <div className="bg-white rounded-lg shadow flex items-center p-3 mb-4">
+                                    <Search size={20} className="text-gray-400 mr-2" />
+                                    <input 
+                                        className="flex-1 outline-none border-none" 
+                                        placeholder="Search location or address..."
+                                    />
+                                </div>
+                                
+                                {/* Map Placeholder */}
+                                <div className="bg-gray-200 rounded-lg h-48 mb-4 flex items-center justify-center">
+                                    <div className="text-center">
+                                        <MapPin size={32} className="mx-auto text-gray-500" />
+                                        <p className="text-gray-500 mt-2">Map View</p>
+                                    </div>
+                                </div>
+                                
+                                {/* Nearby Chargers */}
+                                <h2 className="font-bold text-lg mb-3">Nearby Chargers</h2>
+                                <div className="space-y-3">
+                                    {nearbyChargers.map(charger => (
+                                        <div key={charger.id} className="bg-white p-4 rounded-lg shadow">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <h3 className="font-medium">{charger.host}</h3>
+                                                    <div className="flex items-center text-sm text-gray-500">
+                                                        <MapPin size={14} className="mr-1" />
+                                                        <span>{charger.distance} miles away</span>
+                                                    </div>
+                                                    <div className="flex items-center mt-1">
+                                                        <Star size={14} className="text-yellow-500" fill="gold" />
+                                                        <span className="text-sm ml-1">{charger.rating} ({charger.reviews})</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-bold text-green-600">${charger.price}/hr</div>
+                                                    <div className="flex items-center text-xs mt-1 text-gray-600">
+                                                        <Clock size={12} className="mr-1" />
+                                                        <span>{charger.available}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button className="mt-3 bg-green-600 text-white w-full py-2 rounded-lg font-medium">
+                                                Book Now
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {currentTab === 'bookings' && (
+                            <div className="p-4">
+                                <h2 className="font-bold text-lg mb-4">Your Bookings</h2>
+                                <div className="bg-white p-4 rounded-lg shadow mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h3 className="font-medium">Upcoming Charge</h3>
+                                            <p className="text-gray-600">Tonight, 7PM-7AM</p>
+                                            <p className="text-sm text-gray-500">Maria T. • 0.5 miles away</p>
+                                        </div>
+                                        <ChevronRight size={20} className="text-gray-400" />
+                                    </div>
+                                </div>
+                                <div className="bg-gray-100 p-4 rounded-lg text-center text-gray-500">
+                                    No other bookings to display
+                                </div>
+                            </div>
+                        )}
+                        
+                        {currentTab === 'host' && (
+                            <div className="p-4">
+                                <div className="bg-white p-5 rounded-lg shadow mb-4 text-center">
+                                    <Battery size={48} className="mx-auto text-green-600 mb-3" />
+                                    <h2 className="font-bold text-xl mb-2">Become a Host</h2>
+                                    <p className="text-gray-600 mb-4">Share your home charger and earn $50-$200/month</p>
+                                    <button className="bg-green-600 text-white py-3 px-6 rounded-lg font-medium">
+                                        List Your Charger
+                                    </button>
+                                </div>
+                                
+                                <div className="bg-gray-100 p-4 rounded-lg">
+                                    <h3 className="font-medium mb-2">How hosting works:</h3>
+                                    <ul className="space-y-2 text-gray-600">
+                                        <li className="flex items-start">
+                                            <div className="bg-green-100 rounded-full p-1 mr-2 mt-1">
+                                                <span className="block h-2 w-2 rounded-full bg-green-600"></span>
+                                            </div>
+                                            Set your availability and pricing
+                                        </li>
+                                        <li className="flex items-start">
+                                            <div className="bg-green-100 rounded-full p-1 mr-2 mt-1">
+                                                <span className="block h-2 w-2 rounded-full bg-green-600"></span>
+                                            </div>
+                                            Get bookings from nearby EV owners
+                                        </li>
+                                        <li className="flex items-start">
+                                            <div className="bg-green-100 rounded-full p-1 mr-2 mt-1">
+                                                <span className="block h-2 w-2 rounded-full bg-green-600"></span>
+                                            </div>
+                                            Provide access via QR code or lockbox
+                                        </li>
+                                        <li className="flex items-start">
+                                            <div className="bg-green-100 rounded-full p-1 mr-2 mt-1">
+                                                <span className="block h-2 w-2 rounded-full bg-green-600"></span>
+                                            </div>
+                                            Get paid automatically after each charge
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {currentTab === 'profile' && (
+                            <div className="p-4">
+                                <div className="bg-white p-4 rounded-lg shadow mb-4 flex items-center">
+                                    <div className="bg-gray-200 rounded-full h-16 w-16 flex items-center justify-center mr-4">
+                                        <User size={32} className="text-gray-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium">User Name</h3>
+                                        <p className="text-sm text-gray-500">EV Driver since 2023</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+                                        <span>Payment Methods</span>
+                                        <ChevronRight size={20} className="text-gray-400" />
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+                                        <span>My Vehicles</span>
+                                        <ChevronRight size={20} className="text-gray-400" />
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+                                        <span>Help & Support</span>
+                                        <ChevronRight size={20} className="text-gray-400" />
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+                                        <span>Settings</span>
+                                        <ChevronRight size={20} className="text-gray-400" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Bottom Navigation */}
+                    <div className="bg-white border-t border-gray-200 flex justify-around p-2">
+                        {tabs.map(tab => {
+                            const IconComponent = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    className={`flex flex-col items-center p-2 ${
+                                        currentTab === tab.id ? 'text-green-600' : 'text-gray-500'
+                                    }`}
+                                    onClick={() => setCurrentTab(tab.id)}
+                                >
+                                    <IconComponent size={20} />
+                                    <span className="text-xs mt-1">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<VoltShareApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
